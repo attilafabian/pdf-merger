@@ -2,26 +2,29 @@
 
 Original written by http://pdfmerger.codeplex.com/team/view<br />
 Forked from https://github.com/myokyawhtun/PDFMerger
+and from https://github.com/clegginabox/pdf-merger
+
+I've just forked this package to apply the latest patches,
+especially the one from aaronbauman to ignore FPDI exception 
+so that our merge can continue even with errors.
 
 ## Composer Compatible
 
-I've just forked this package to make it compatible with composer
-
 To install add this line to your composer.json
 
-```"clegginabox/pdf-merger": "dev-master"```
+```"attilafabian/pdf-merger": "dev-master"```
 
 or
 
-```composer require clegginabox/pdf-merger:dev-master```
+```composer require attilafabian/pdf-merger:dev-master```
 
 ### Example Usage
 ```php
 
-$pdf = new \Clegginabox\PDFMerger\PDFMerger;
+$pdf = new \FBO\PDFMerger\PDFMerger;
 
 $pdf->addPDF('samplepdfs/one.pdf', '1, 3, 4');
-$pdf->addPDF('samplepdfs/two.pdf', '1-2');
+$pdf->addPDF('samplepdfs/two.jpg');
 $pdf->addPDF('samplepdfs/three.pdf', 'all');
 
 //You can optionally specify a different orientation for each PDF

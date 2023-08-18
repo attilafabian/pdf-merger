@@ -1,6 +1,6 @@
 {
-    "name": "clegginabox/pdf-merger",
-    "description": "PDF File Merger for PHP5",
+    "name": "attilafabian/pdf-merger",
+    "description": "PDF File Merger for PHP",
     "license": "MIT",
     "require": {
         "setasign/fpdi": "^2.2",

@@ -22,15 +22,17 @@
  *
  */
 
-namespace Clegginabox\PDFMerger;
+namespace FBO\PDFMerger;
 
 use Exception;
 use setasign\Fpdi\Fpdi;
+use setasign\Fpdi\FpdiException;
 
 class PDFMerger
 {
     private $_files;    //['form.pdf']  ["1,2,4, 5-19"]
     private $_fpdi;
+    private $ignoreFpdiException = FALSE;
 
     /**
      * Add a PDF for inclusion in the merge with a valid file path. Pages should be formatted: 1,3,6, 12-16.
@@ -64,6 +66,14 @@ class PDFMerger
         return $this;
     }
 
+    /**
+     * Ignore ignoreFpdiException exceptions (e.g. if files are encrypted) during merge.
+     * @param bool $ignore
+     */
+    public function ignoreFpdiException($ignore = TRUE) {
+        $this->ignoreFpdiException = $ignore;
+    } 
+
 
     /**
      * Merges your provided PDFs and outputs to specified location.
@@ -82,39 +92,52 @@ class PDFMerger
 
         // merger operations
         foreach ($this->_files as $index => $file) {
-            $filename = $file[0];
-            $filepages = $file[1];
-            $fileType = $file[3];
-            $fileorientation = (!is_null($file[2])) ? $file[2] : $orientation;
+            try {
+            
+                $filename = $file[0];
+                $filepages = $file[1];
+                $fileType = $file[3];
+                $fileorientation = (!is_null($file[2])) ? $file[2] : $orientation;
+                $autoOrientation = ($fileorientation === 'A');
 
 
-            //add the pages
-            if ($filepages == 'all') {
-                if ($fileType === 'pdf') {
-                    $count = $fpdi->setSourceFile($filename);
-                    for ($i = 1; $i <= $count; $i++) {
-                        $template = $fpdi->importPage($i);
+                //add the pages
+                if ($filepages == 'all') {
+                    if ($fileType === 'pdf') {
+                        $count = $fpdi->setSourceFile($filename);
+                        for ($i = 1; $i <= $count; $i++) {
+                            $template = $fpdi->importPage($i);
+                            $size = $fpdi->getTemplateSize($template);
+                            if ($autoOrientation) {
+                                $fileorientation = ($size['width'] > $size['height']) ? 'L' : 'P';
+                            }
+                            $fpdi->AddPage($fileorientation, array($size['width'], $size['height']));
+                            $fpdi->useTemplate($template);
+                        }
+                    } else {
+                        $fpdi->addPage();
+                        $fpdi->Image($filename, 0, 0);
+                    }
+                } else {
+                    foreach ($filepages as $page) {
+                        if (!$template = $fpdi->importPage($page)) {
+                            throw new Exception("Could not load page '$page' in PDF '$filename'. Check that the page exists.");
+                        }
                         $size = $fpdi->getTemplateSize($template);
-                        if ($fileorientation === 'A') {
+                        if ($autoOrientation) {
                             $fileorientation = ($size['width'] > $size['height']) ? 'L' : 'P';
                         }
+
                         $fpdi->AddPage($fileorientation, array($size['width'], $size['height']));
                         $fpdi->useTemplate($template);
                     }
-                } else {
-                    $fpdi->addPage();
-                    $fpdi->Image($filename, 0, 0);
                 }
-            } else {
-                foreach ($filepages as $page) {
-                    if (!$template = $fpdi->importPage($page)) {
-                        throw new Exception("Could not load page '$page' in PDF '$filename'. Check that the page exists.");
-                    }
-                    $size = $fpdi->getTemplateSize($template);
-
-                    $fpdi->AddPage($fileorientation, array($size['width'], $size['height']));
-                    $fpdi->useTemplate($template);
+            }
+            catch (FpdiException $e) {
+                if ($this->ignoreFpdiException) {
+                    continue;
                 }
+                throw $e;
             }
         }
 
